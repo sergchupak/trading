@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://code.jquery.com/jquery-3.0.0-rc1.js"></script>
+<script>
+	
+function getSecuritySMS(callback) {
+    $.ajax({
+        url: 'https://tradernet.com/api/get-security-sms',
+        dataType: 'json',
+        success: callback
+    });
+}
+
+function openSessionWithSmsSequrityCode(smsSequrityCode, callback) {
+    var type = 3;
+
+    $.ajax({
+        url: 'https://tradernet.com/api/open-security-session',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            safetyTypeId: type,
+            validationKey: smsSequrityCode
+        },
+        success: callback
+    });
+
+}
+
+var $logDiv = $('#results');
+var $getSmsBtn = $('#get-sms-btn');
+var $smsCode = $('#sms-code');
+var $sendSmsBtn = $('#send-sms-btn');
+
+function addLog(logMsg) {
+  $logDiv.html( $logDiv.html() + '<hr/>' +logMsg );
+}
+
+$getSmsBtn.on('click', function () {
+	alert('boo')
+  addLog('SMS requested');
+  getSecuritySMS(function (data) {
+    addLog('Answer on request sms: ' + JSON.stringify(data));
+  });
+});
+
+$sendSmsBtn.on('click', function () {
+  addLog('Sending SMS to server');
+  openSessionWithSmsSequrityCode($smsCode.val(), function (data) {
+    addLog('Answer on send sms: ' + JSON.stringify(data));
+  });
+});
+	
+</script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>JS Bin</title>
+</head>
+<body>
+  <button id="get-sms-btn" style="width: 100%;">Request SMS</button>
+  <input id="sms-code" style="width: 45%;">
+  <button id="send-sms-btn" style="width: 50%;">Send SMS</button>
+  <div id="results"></div>
+</body>
+</html>
