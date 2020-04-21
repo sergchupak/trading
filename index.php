@@ -42,52 +42,52 @@ function message_to_telegram($text)
 
 
 $publicApiClient = new PublicApiClient($apiKey, $apiSecretKey, $version);
+$result = $publicApiClient->sendRequest('getPositionJson', []);
+$result = json_decode ($result);
 
 
-/**
-* @param {string} $command -  команда API 
-* @param {array} $params -  параметры команды 
-* @param {'json'|'array'} $type -  формат ответа json или array 
-*
-*
+$j=0;
 
-
-/** Примеры */
-
-
-/** 1. Открытие сессии безопасности */
-
-
-
-$i=0;
+$m=0;
 while(1==1){
-	$i+=1;
+if(is_array($result->result->ps->pos)){
 	//$result = $publicApiClient->sendRequest('getAuthInfo', []);
-	$result = $publicApiClient->sendRequest('getPositionJson', []);
+	
+	
+	
+	$ticker6 = str_replace('.US','',$result->result->ps->pos[6]->i);
+	$ticker7 = str_replace('.US','',$result->result->ps->pos[7]->i);
+	
+	$url = "https://cloud.iexapis.com/stable/tops?token=pk_6e3949820f2045368e07dfbd20724842&symbols=".$ticker6.",".$ticker7;
+	$json = file_get_contents($url);
+	$json = json_decode ($json);
+	
 	$output= "";
 	//print_r(json_decode ($result));
-	$result = json_decode ($result);
+
 	$vhod = floatval($result->result->ps->pos[7]->bal_price_a);
+	$result->result->ps->pos[7]->mkt_price = $json[1]->lastSalePrice;
 	$mkt = floatval($result->result->ps->pos[7]->mkt_price);
 	$amount = intval($result->result->ps->pos[7]->q);
 	$res_xom = $mkt*$amount-$vhod*$amount;
-	echo "[".$i."]//////////////////////////////////////////////////////////\n";
-
-	echo "XOM Цена входа:".$vhod." - ".$mkt." = ".$res_xom."\n";
+	echo "[".$j."]//////////////////////////////////////////////////////////\n";
+	echo date('l jS \of F Y h:i:s A', $json[1]->lastSaleTime)."\n";
+	echo $result->result->ps->pos[7]->i." ".$vhod." - ".$mkt." = ".$res_xom."\n";
 	//$output .= "XOM Цена входа:".$vhod." - ".$mkt." = ".$res_xom."<br>";
 	
 	$vhod = floatval($result->result->ps->pos[6]->bal_price_a);
+	$result->result->ps->pos[6]->mkt_price = $json[0]->lastSalePrice;
 	$mkt = floatval($result->result->ps->pos[6]->mkt_price);
 	$amount = intval($result->result->ps->pos[6]->q);
 	$res_cvx = $mkt*$amount-$vhod*$amount;
-	$comition = ($mkt*$amount+$vhod*$amount)*2/10000*2;
+	$comition = ($mkt*$amount+$vhod*$amount)*5.2/10000*2;
 
-	echo "CVX Цена входа:".$vhod." - ".$mkt." = ".$res_cvx."\n";
+	echo $result->result->ps->pos[6]->i." ".$vhod." - ".$mkt." = ".$res_cvx."\n";
 	//$output .= 	"CVX Цена входа:".$vhod." - ".$mkt." = ".$res_cvx."<br>";
 	$main_result = $res_xom+$res_cvx;
 	echo "Комиссия:".$comition."\n";
 	echo "Разница:".$main_result."\n";
-	$main_result = $main_result+$comition;
+	$main_result = $main_result-abs($comition);
 	echo "Бабло:".$main_result."\n";
 	
 	
@@ -95,12 +95,39 @@ while(1==1){
 	echo "\n\n";
 	
 	$file = 'data.html';
-	file_put_contents($file, $output, FILE_APPEND | LOCK_EX);
-	if(intval($main_result)>50)
-		message_to_telegram($output);
 	
+	//file_put_contents($file, $output, FILE_APPEND | LOCK_EX);
 	
-	sleep(10);
+	if($m>0)
+		$m--;
+	
+	if(intval($main_result)<-900){
+		if($m==0)
+			message_to_telegram("Обнуляем точку входа, убыток:".intval($main_result));
+		$main_result+=900;
+		$m = 10;
+		
+	}
+	if(intval($main_result)>100)
+		if($m==0)
+			message_to_telegram("Фиксируем прибыль:".$main_result);
+		$m = 10;
+	
+	sleep(0.1);
+	$j++;
+	if ($j==1000){
+		$j=0;
+		$publicApiClient = new PublicApiClient($apiKey, $apiSecretKey, $version);
+		$result = $publicApiClient->sendRequest('getPositionJson', []);
+		$result = json_decode ($result);
+	}
+}
+else{
+	$publicApiClient = new PublicApiClient($apiKey, $apiSecretKey, $version);
+	$result = $publicApiClient->sendRequest('getPositionJson', []);
+	$result = json_decode ($result);
+}
+		
 	
 }
 /*$responseExample = $publicApiClient->sendRequest('getPositionJson');
