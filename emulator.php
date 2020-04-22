@@ -61,18 +61,21 @@ $client = getClient();
 $service = new Google_Service_Sheets($client);
 
 $spreadsheetId = '1v5sZ9w4XVnZCSa-CmADatOIn-FHyHMu1SNeD_DtvHFc';
-$range = 'cvx_xom_min!A2:C11231';
+$range = 'cvx_xom_min!A1470:C11231';
 $response = $service->spreadsheets_values->get($spreadsheetId, $range);
 $values = $response->getValues();
-print_r($values);
+//print_r($values);
 $log = array();
 
 
-$global_profit = 0;
+
 $super_global = 0;
 $super_global_amount = 0;
-for($loss_limit=-900;$loss_limit>-1000;$loss_limit-=5){
-for($deal_profit_limit=150;$deal_profit_limit<180;$deal_profit_limit +=5){
+$total_arr = array();
+for($i=300;$i<=350;$i+=10)
+for($k=-1000; $k>=-1800; $k-=50){
+for($loss_limit=$k;$loss_limit>=$k-100;$loss_limit-=10){
+for($deal_profit_limit=$i;$deal_profit_limit<$i+50;$deal_profit_limit +=10){
 
 $long_id_mark = 1;
 $short_id_mark = 2;
@@ -80,14 +83,14 @@ $profit = 0;
 $comissia = 0;
 $long_id_mark = 1;
 $short_id_mark = 2;
-$deal_count= 0;
+$deal_count = 0;
 $loss_count = 0;
 $pos = array(
 		'long' => array(
 			'name'=>'cvx', 
 			'price_in' => floatval($values[0][1]), 
 			'current_price' => 0, 
-			'qty' => 300, 
+			'qty' => 370, 
 			'res' => 0, 
 			'current_amount'=>0, 
 			'start_amount'=>0
@@ -96,7 +99,7 @@ $pos = array(
 			'name'=>'xom', 
 			'price_in' => floatval($values[0][2]), 
 			'current_price' => 0, 
-			'qty' => 600, 
+			'qty' => 700, 
 			'res' => 0,
 			'current_amount'=>0,
 			'start_amount'=>0 
@@ -123,8 +126,8 @@ foreach($values as $value) {
 	$deal_result = $pos['short']['res'] + $pos['long']['res'];
 	
 	$deal_result = $pos['long']['res'] + $pos['short']['res'];
-	$deal_comission = ($pos['long']['current_amount'] + $pos['short']['current_amount'])*floatval(0.0002)*2;
-	$super_global_amount += $deal_comission;
+	$deal_comission = ($pos['long']['current_amount'] + $pos['short']['current_amount'])*floatval(0.0005)*2;
+
 	//echo "Deal_result:".$deal_result."\n";
 	
 	//проверяем лимит по прибыли
@@ -136,6 +139,7 @@ foreach($values as $value) {
 		$bank_array[] = $profit;
 		$comissia += $deal_comission;
 		$deal_count += 1;
+		$super_global_amount += $pos['long']['current_amount']*$pos['long']['current_price'] + $pos['short']['current_amount']*$pos['short']['current_price'];
 		//echo "Фиксируем прибыль:".$deal_result." Банк(".$profit.") \n";
 		//echo "Переставляем позиции \n";
 		//переставляем лонг в шорт
@@ -166,34 +170,44 @@ foreach($values as $value) {
 	//проверяем лимит убытка
 	if($deal_result<$loss_limit){
 		$profit += $deal_result;
+
 		$bank_array[] = $profit;
 		$pos['long']['price_in']=$pos['long']['current_price'];
 		$pos['short']['price_in']=$pos['short']['current_price'];
 		$loss_count+=1;
 		//$deal_result = 0;
 		$deal_normal = $loss_limit;
+		
+		
 	}
 	
 	//echo "\n\n";
 	
 }
 
-$global_profit+=$profit;
-if($profit>1000)
-	echo $loss_limit.":".$deal_profit_limit."||Profit: ".$profit."||Min bank:".intval(min($bank_array))."||Comissia:".$comissia."\n";
+//if($profit>12000)
+	//echo $loss_limit.":".$deal_profit_limit."||Profit: ".intval($profit)."||Min bank:".intval(min($bank_array))."||Comissia:".$comissia."||Deal_count:".$deal_count."||Loss_Deal_count:".$loss_count."\n";
+$super_global+=$profit;
 $bank_array = array();
 $profit = 0;
 $comissia = 0;
 $deal_count=0;
 $loss_count= 0;
 }
-$super_global+=$global_profit;
-$global_profit = 0;
+
+
 
 }
 $percent = $super_global/$super_global_amount;
-echo "\n\n Super Global profit:".$super_global."||Global_amount".$super_global_amount."||Total_percent:".$percent."\n\n";
-
+$percent = $percent*10000000;
+$km = $k-50;
+$ki = $i+10;
+$period =  "[".$k.":".$km."][".$i.",".$ki."]";
+$total_arr[] = array($percent,$period);
+echo "[".$k.":".$km."][".$i.",".$ki."] Super Global profit:".$super_global."||Global_amount".$super_global_amount."||Total_percent:".$percent."\n";
+$super_global = 0;
+$super_global_amount = 0;
+}
 
 
 
